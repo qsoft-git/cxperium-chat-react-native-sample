@@ -1,0 +1,24 @@
+{
+  "name": "cxperium-chat-native-sample",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Minimal React Native chat client for a Cxperium custom (mobile) channel — atomic design, meant to be copied into your own app.",
+  "main": "index.js",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios"
+  },
+  "dependencies": {
+    "@expo/metro-runtime": "~6.1.2",
+    "expo": "~54.0.0",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "react-native": "0.81.5",
+    "react-native-web": "^0.21.0",
+    "socket.io-client": "^4.8.1"
+  },
+  "devDependencies": {
+    "@expo/ngrok": "^4.1.3"
+  }
+}

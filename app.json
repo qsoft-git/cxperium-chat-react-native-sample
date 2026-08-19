@@ -1,0 +1,17 @@
+{
+  "expo": {
+    "name": "Cxperium Chat Sample",
+    "slug": "cxperium-chat-native-sample",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "ai.qsoft.cxperium.chatsample"
+    },
+    "android": {
+      "package": "ai.qsoft.cxperium.chatsample"
+    }
+  }
+}

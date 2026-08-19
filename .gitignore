@@ -1,0 +1,18 @@
+node_modules/
+.expo/
+dist/
+npm-debug.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+.DS_Store
+
+# Yerel yapilandirma — gercek kanal anahtari/secret'i BURAYA yazin, config
+# dosyasina degil. Boylece kazara commit'lenmez.
+# Local overrides — put your real channel key/secret here, not in the config
+# file, so they can never be committed by accident.
+.env
+.env.local
+src/config/cxperium.local.js
