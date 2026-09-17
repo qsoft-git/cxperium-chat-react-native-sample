@@ -10,16 +10,19 @@ import {
 
 import Composer from '../molecules/Composer';
 import ChatHeader from '../organisms/ChatHeader';
+import FlowForm from '../organisms/FlowForm';
 import MessageList from '../organisms/MessageList';
 
 /**
  * TEMPLATE
- * EN: Pure layout: header on top, list in the middle, composer at the bottom.
- *     It receives everything as props and holds no state, so you can drop it
- *     into any screen or navigator.
- * TR: Saf yerleşim: üstte başlık, ortada liste, altta yazma alanı. Her şeyi
- *     prop olarak alır ve durum tutmaz; bu yüzden istediğiniz ekrana ya da
- *     gezinme yapısına yerleştirebilirsiniz.
+ * EN: Pure layout: header on top, list in the middle, composer at the bottom,
+ *     and the form modal over everything while a form is open. It receives
+ *     everything as props and holds no state, so you can drop it into any
+ *     screen or navigator.
+ * TR: Saf yerleşim: üstte başlık, ortada liste, altta yazma alanı ve bir form
+ *     açıkken her şeyin üstünde form penceresi. Her şeyi prop olarak alır ve
+ *     durum tutmaz; bu yüzden istediğiniz ekrana ya da gezinme yapısına
+ *     yerleştirebilirsiniz.
  */
 export default function ChatTemplate({
   title,
@@ -30,6 +33,12 @@ export default function ChatTemplate({
   onSend,
   onChoose,
   placeholder,
+  activeForm,
+  answeredForms,
+  onOpenForm,
+  onCloseForm,
+  onSubmitForm,
+  onExchange,
 }) {
   return (
     <SafeAreaView style={styles.safe}>
@@ -55,11 +64,30 @@ export default function ChatTemplate({
         ) : null}
 
         <View style={styles.flex}>
-          <MessageList messages={messages} busy={busy} onChoose={onChoose} />
+          <MessageList
+            messages={messages}
+            busy={busy}
+            onChoose={onChoose}
+            onOpenForm={onOpenForm}
+            answeredForms={answeredForms}
+          />
         </View>
 
         <Composer busy={busy} onSend={onSend} placeholder={placeholder} />
       </KeyboardAvoidingView>
+
+      {/* EN: One form at a time. The modal unmounts when the form closes, so
+              a re-opened form always starts from its first screen.
+          TR: Bir anda tek form. Form kapanınca pencere kaldırılır; yeniden
+              açılan form hep ilk ekranından başlar. */}
+      {activeForm ? (
+        <FlowForm
+          form={activeForm}
+          onClose={onCloseForm}
+          onSubmit={onSubmitForm}
+          onExchange={onExchange}
+        />
+      ) : null}
     </SafeAreaView>
   );
 }

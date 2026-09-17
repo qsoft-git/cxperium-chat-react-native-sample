@@ -18,6 +18,7 @@
 ```bash
 npm install
 npm start
+npm test      # EN: unit tests (jest-expo) · TR: birim testleri (jest-expo)
 ```
 
 **EN** — Then open `src/config/cxperium.config.js` and fill in `channelKey`.
@@ -43,18 +44,22 @@ src/
 ├── api/
 │   ├── cxperiumAuth.js         EN: obtains the user token
 │   │                           TR: kullanıcı token'ını alır
-│   ├── cxperiumClient.js       EN: send a message, read history
-│   │                           TR: mesaj gönderme, geçmişi okuma
+│   ├── cxperiumClient.js       EN: send a message / a form reply, read history, flow exchange
+│   │                           TR: mesaj / form cevabı gönderme, geçmişi okuma, flow exchange
 │   └── cxperiumSocket.js       EN: realtime bot replies
 │                               TR: anlık bot yanıtları
+├── services/
+│   └── flowEngine.js           EN: form (WhatsApp Flow) engine — pure JS, unit-tested
+│                               TR: form (WhatsApp Flow) motoru — saf JS, birim testli
 ├── hooks/
 │   └── useCxperiumChat.js      EN: all the logic, no UI
 │                               TR: bütün mantık, arayüz yok
 ├── components/
 │   ├── atoms/                  MessageBubble · Timestamp · ChoiceChip
-│   │                           SendButton · ConnectionDot
+│   │                           SendButton · ConnectionDot · FormCtaButton
 │   ├── molecules/              MessageRow · ChoiceGroup · Composer
-│   ├── organisms/              ChatHeader · MessageList
+│   │                           FlowField · FlowText
+│   ├── organisms/              ChatHeader · MessageList · FlowForm
 │   └── templates/              ChatTemplate
 └── screens/
     └── ChatScreen.js           EN: logic meets layout
@@ -62,12 +67,14 @@ src/
 ```
 
 **EN** — If you only want the behaviour and not our look, copy
-`src/api/` + `src/hooks/` and render the messages yourself. The hook returns
-`{ messages, status, error, sending, send, choose }` and nothing else.
+`src/api/` + `src/hooks/` (+ `src/services/` for forms) and render the messages
+yourself. The hook returns `{ messages, status, error, sending, send, choose }`
+plus, for forms, `{ activeForm, answeredForms, openForm, closeForm, submitForm, exchange }`.
 
 **TR** — Görünümümüzü değil yalnızca davranışı istiyorsanız `src/api/` ve
-`src/hooks/` klasörlerini kopyalayıp mesajları kendiniz çizin. Hook yalnızca
-`{ messages, status, error, sending, send, choose }` döner.
+`src/hooks/` (formlar için ayrıca `src/services/`) klasörlerini kopyalayıp
+mesajları kendiniz çizin. Hook `{ messages, status, error, sending, send, choose }`
+ve formlar için `{ activeForm, answeredForms, openForm, closeForm, submitForm, exchange }` döner.
 
 ---
 
@@ -135,10 +142,11 @@ kullanılamaz.
 | `text` | `MessageBubble` | Plain text. |
 | `choices` | `MessageBubble` + `ChoiceGroup` | Only the **last** one stays tappable. |
 | `media` | `MessageRow` | Caption only in this sample — rendering images is left to you. |
+| `form` | `MessageRow` + `FormCtaButton` → `FlowForm` | A WhatsApp-Flow style form: `text` in the bubble, `form.cta` opens the screens (`form.screens`, Flow JSON v7 subset). Static screens (`navigate` / `complete`) run on the device; `data_exchange` / `INIT` / `BACK` ask the bot via `POST /custom/:key/flows/exchange`. The completed form goes to `/messages` as `{ type:"form", form:{ token, name, version, response } }`; the bubble then shows a "Form sent" summary. Unknown component types are shown as text, never dropped. Logic lives in `src/services/flowEngine.js` (pure JS, see `__tests__/`). |
 | `unknown` | `MessageRow` | Falls back to text so the chat never looks broken. |
 
-What you can send: `text` and `choice` (singular — the reply to a `choices`
-message).
+What you can send: `text`, `choice` (singular — the reply to a `choices`
+message) and `form` (the reply to a `form` message; `form.token` is mandatory).
 
 **TR** — Botun size gönderebilecekleri:
 
@@ -147,10 +155,11 @@ message).
 | `text` | `MessageBubble` | Düz metin. |
 | `choices` | `MessageBubble` + `ChoiceGroup` | Yalnızca **son** mesaj dokunulabilir kalır. |
 | `media` | `MessageRow` | Bu örnekte yalnızca açıklama — görsel çizimi size bırakıldı. |
+| `form` | `MessageRow` + `FormCtaButton` → `FlowForm` | WhatsApp Flow tarzı form: balonda `text`, `form.cta` ekranları açar (`form.screens`, Flow JSON v7 alt kümesi). Statik ekranlar (`navigate` / `complete`) cihazda çalışır; `data_exchange` / `INIT` / `BACK` bota `POST /custom/:key/flows/exchange` ile sorulur. Tamamlanan form `/messages` ucuna `{ type:"form", form:{ token, name, version, response } }` olarak gider; balonda "Form gönderildi" özeti görünür. Bilinmeyen bileşen tipleri düşürülmez, metin olarak gösterilir. Mantık `src/services/flowEngine.js` içindedir (saf JS, bkz. `__tests__/`). |
 | `unknown` | `MessageRow` | Metne düşer; sohbet asla bozuk görünmez. |
 
-Sizin gönderebilecekleriniz: `text` ve `choice` (tekil — bir `choices` mesajına
-verilen yanıt).
+Sizin gönderebilecekleriniz: `text`, `choice` (tekil — bir `choices` mesajına
+verilen yanıt) ve `form` (bir `form` mesajına verilen yanıt; `form.token` zorunludur).
 
 ---
 

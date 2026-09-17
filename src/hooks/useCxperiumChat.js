@@ -1,8 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { authenticate } from '../api/cxperiumAuth';
-import { fetchMessages, sendChoice, sendTextMessage } from '../api/cxperiumClient';
+import {
+  fetchMessages,
+  flowExchange,
+  sendChoice,
+  sendFormReply,
+  sendTextMessage,
+} from '../api/cxperiumClient';
 import { connectToChat, disconnectFromChat } from '../api/cxperiumSocket';
+import { summarizeResponse } from '../services/flowEngine';
 
 /**
  * EN: All the chat logic lives here, so the components below stay purely
@@ -17,6 +24,15 @@ export function useCxperiumChat({ displayName }) {
   const [status, setStatus] = useState('connecting');
   const [error, setError] = useState(null);
   const [sending, setSending] = useState(false);
+
+  // EN: The `form` object of the message whose form is open right now (one at
+  //     a time), and the tokens of forms already answered — a form is
+  //     single-use, so its "Open form" button is disabled after that.
+  // TR: Şu anda formu açık olan mesajın `form` nesnesi (bir anda tek) ve
+  //     zaten cevaplanmış formların token'ları — form tek kullanımlıktır;
+  //     sonrasında "Formu aç" butonu kapanır.
+  const [activeForm, setActiveForm] = useState(null);
+  const [answeredForms, setAnsweredForms] = useState({});
 
   // EN: Refs, not state: these change often and must never trigger a re-render.
   // TR: State değil ref: bunlar sık değişir ve asla yeniden çizim tetiklememeli.
@@ -54,6 +70,21 @@ export function useCxperiumChat({ displayName }) {
         lastSeqRef.current = message.seq;
       }
     });
+
+    // EN: A form reply of ours in the history (direction "in") means that form
+    //     was answered in an earlier session — close its button too.
+    // TR: Geçmişte bize ait bir form cevabı (direction "in"), o formun önceki
+    //     bir oturumda cevaplandığı anlamına gelir — butonunu da kapat.
+    const answered = incoming.filter((m) => m.direction === 'in' && m.type === 'form' && m.form?.token);
+    if (answered.length) {
+      setAnsweredForms((current) => {
+        const next = { ...current };
+        answered.forEach((m) => {
+          next[m.form.token] = true;
+        });
+        return next;
+      });
+    }
   }, []);
 
   /**
@@ -204,5 +235,83 @@ export function useCxperiumChat({ displayName }) {
     [mergeMessages]
   );
 
-  return { messages, status, error, sending, send, choose };
+  /**
+   * EN: Opens the form of a bot `form` message. FlowForm takes over from
+   *     here: it walks the screens and calls submitForm / exchange below.
+   * TR: Botun `form` mesajının formunu açar. Buradan sonrası FlowForm'undur:
+   *     ekranlarda gezer ve aşağıdaki submitForm / exchange'i çağırır.
+   */
+  const openForm = useCallback((message) => {
+    if (message?.form?.screens?.length) setActiveForm(message.form);
+  }, []);
+
+  const closeForm = useCallback(() => setActiveForm(null), []);
+
+  /**
+   * EN: Sends the completed form (contract §B), closes it, and echoes a
+   *     "Form sent" summary bubble. `summary` is the readable text FlowForm
+   *     built from field labels; it is only kept locally.
+   * TR: Tamamlanan formu gönderir (sözleşme §B), formu kapatır ve "Form
+   *     gönderildi" özet balonunu yansıtır. `summary`, FlowForm'un alan
+   *     etiketlerinden ürettiği okunur metindir; yalnızca yerelde tutulur.
+   */
+  const submitForm = useCallback(
+    async (form, response, summary) => {
+      if (!authRef.current || !form) return;
+
+      setActiveForm(null);
+      setSending(true);
+
+      try {
+        const messageId = await sendFormReply({ auth: authRef.current, form, response });
+
+        if (form.token) setAnsweredForms((current) => ({ ...current, [form.token]: true }));
+
+        mergeMessages([
+          {
+            id: messageId,
+            seq: lastSeqRef.current + 0.5,
+            ts: Math.floor(Date.now() / 1000),
+            direction: 'in',
+            type: 'form',
+            text: summary || summarizeResponse(response, null),
+            form: { token: form.token, name: form.name, version: form.version, response },
+          },
+        ]);
+      } catch (submitError) {
+        setError(submitError.message);
+      } finally {
+        setSending(false);
+      }
+    },
+    [mergeMessages]
+  );
+
+  /**
+   * EN: Asks the bot for the next screen (contract §C). Returns the bot's
+   *     `{ version, screen, data }`; throws with a readable message on
+   *     failure so FlowForm can show it with a Retry button.
+   * TR: Bir sonraki ekranı bota sorar (sözleşme §C). Botun
+   *     `{ version, screen, data }` cevabını döner; hatada okunur bir mesajla
+   *     fırlatır ki FlowForm bunu Tekrar dene butonuyla gösterebilsin.
+   */
+  const exchange = useCallback(async (form, action, screenId, data) => {
+    if (!authRef.current) throw new Error('Not connected');
+    return flowExchange({ auth: authRef.current, form, action, screenId, data });
+  }, []);
+
+  return {
+    messages,
+    status,
+    error,
+    sending,
+    send,
+    choose,
+    activeForm,
+    answeredForms,
+    openForm,
+    closeForm,
+    submitForm,
+    exchange,
+  };
 }

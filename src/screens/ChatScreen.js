@@ -13,9 +13,20 @@ import { useCxperiumChat } from '../hooks/useCxperiumChat';
  *     Aynı zamanda projedeki en kısa dosya, ki mesele de bu.
  */
 export default function ChatScreen({ displayName = 'Guest' }) {
-  const { messages, status, error, sending, send, choose } = useCxperiumChat({
-    displayName,
-  });
+  const {
+    messages,
+    status,
+    error,
+    sending,
+    send,
+    choose,
+    activeForm,
+    answeredForms,
+    openForm,
+    closeForm,
+    submitForm,
+    exchange,
+  } = useCxperiumChat({ displayName });
 
   return (
     <ChatTemplate
@@ -27,6 +38,12 @@ export default function ChatScreen({ displayName = 'Guest' }) {
       onSend={send}
       onChoose={choose}
       placeholder="Type a message…"
+      activeForm={activeForm}
+      answeredForms={answeredForms}
+      onOpenForm={openForm}
+      onCloseForm={closeForm}
+      onSubmitForm={submitForm}
+      onExchange={exchange}
     />
   );
 }

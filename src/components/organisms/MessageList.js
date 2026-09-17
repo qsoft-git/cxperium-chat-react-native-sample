@@ -1,4 +1,4 @@
-import React, { useCallback, useRef } from 'react';
+import React, { useCallback } from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
 
 import ChoiceGroup from '../molecules/ChoiceGroup';
@@ -11,8 +11,8 @@ import MessageRow from '../molecules/MessageRow';
  * TR: Kayan konuşma alanı. Uzun geçmişlerin akıcı kalması için ScrollView değil
  *     FlatList kullanır — yalnızca görünen satırlar çizilir.
  */
-export default function MessageList({ messages, busy, onChoose }) {
-  const listRef = useRef(null);
+export default function MessageList({ messages, busy, onChoose, onOpenForm, answeredForms }) {
+  const listRef = React.useRef(null);
 
   const renderItem = useCallback(
     ({ item, index }) => {
@@ -24,9 +24,18 @@ export default function MessageList({ messages, busy, onChoose }) {
       //     beklemediği bir cevap göndermek olur.
       const isLast = index === messages.length - 1;
 
+      // EN: A form, unlike choices, stays openable until it is answered —
+      //     the bot waits for it, and the token ties the answer to it. Once
+      //     answered (now or in an earlier session) the button is disabled.
+      // TR: Form, seçeneklerden farklı olarak cevaplanana kadar açılabilir
+      //     kalır — bot onu bekler ve token cevabı ona bağlar. Cevaplanınca
+      //     (şimdi ya da önceki bir oturumda) buton kapanır.
+      const token = item.type === 'form' ? item.form?.token : null;
+      const formDisabled = busy || Boolean(token && answeredForms && answeredForms[token]);
+
       return (
         <View>
-          <MessageRow message={item} />
+          <MessageRow message={item} onOpenForm={onOpenForm} formDisabled={formDisabled} />
           {item.type === 'choices' && (
             <ChoiceGroup
               choices={item.choices}
@@ -37,7 +46,7 @@ export default function MessageList({ messages, busy, onChoose }) {
         </View>
       );
     },
-    [busy, messages.length, onChoose]
+    [busy, messages.length, onChoose, onOpenForm, answeredForms]
   );
 
   return (
